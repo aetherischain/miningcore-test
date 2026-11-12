@@ -1,0 +1,80 @@
+diff --git a/vendor/rmt-miningcore/src/Miningcore/Blockchain/Bitcoin/BitcoinJob.cs b/vendor/rmt-miningcore/src/Miningcore/Blockchain/Bitcoin/BitcoinJob.cs
+--- a/vendor/rmt-miningcore/src/Miningcore/Blockchain/Bitcoin/BitcoinJob.cs
++++ b/vendor/rmt-miningcore/src/Miningcore/Blockchain/Bitcoin/BitcoinJob.cs
+@@
+     protected int extraNoncePlaceHolderLength;
+     protected IHashAlgorithm headerHasher;
+     protected bool isPoS;
++
++    // Consensus-specific serialization/time rules can be overridden by coin jobs.
++    protected virtual bool IncludeCoinbaseTimestamp => isPoS;
++    protected virtual bool IncludeBlockSignature => isPoS;
++
++    protected virtual bool IsValidShareTime(uint nTime)
++    {
++        var now = ((DateTimeOffset) clock.Now).ToUnixTimeSeconds();
++        return nTime >= BlockTemplate.CurTime && nTime <= now + 7200;
++    }
++
+     protected string txComment;
+@@
+-            // timestamp for POS coins
+-            if(isPoS)
++            // Some Bitcoin-derived chains serialize nTime in every transaction.
++            if(IncludeCoinbaseTimestamp)
+@@
+-        if(nTimeInt < BlockTemplate.CurTime || nTimeInt > ((DateTimeOffset) clock.Now).ToUnixTimeSeconds() + 7200)
++        if(!IsValidShareTime(nTimeInt))
+             throw new StratumException(StratumError.Other, "ntime out of range");
+@@
+-            // POS coins require a zero byte appended to block which the daemon replaces with the signature
+-            if(isPoS)
++            // The signature vector is empty for PoW blocks on some Bitcoin-derived chains.
++            // Its serialized CompactSize length is still one zero byte.
++            if(IncludeBlockSignature)
+                 bs.ReadWrite((byte) 0);
+*** End Patch
+
+diff --git a/vendor/rmt-miningcore/src/Miningcore/Blockchain/Bitcoin/BitcoinJobManager.cs b/vendor/rmt-miningcore/src/Miningcore/Blockchain/Bitcoin/BitcoinJobManager.cs
+--- a/vendor/rmt-miningcore/src/Miningcore/Blockchain/Bitcoin/BitcoinJobManager.cs
++++ b/vendor/rmt-miningcore/src/Miningcore/Blockchain/Bitcoin/BitcoinJobManager.cs
+@@
+ using Miningcore.Blockchain.Bitcoin.Configuration;
+ using Miningcore.Blockchain.Bitcoin.Custom.AdventurecoinJob;
++using Miningcore.Blockchain.Bitcoin.Custom;
+@@
+         switch(coin.Symbol)
+         {
+             case "ADVC":
+                 return new AdventurecoinJob();
++            case "AETH":
++                return new AetherisBitcoinJob();
+         }
+*** End Patch
+
+diff --git a/vendor/rmt-miningcore/src/Miningcore/Blockchain/Bitcoin/Custom/AetherisBitcoinJob.cs b/vendor/rmt-miningcore/src/Miningcore/Blockchain/Bitcoin/Custom/AetherisBitcoinJob.cs
+new file mode 100644
+--- /dev/null
++++ b/vendor/rmt-miningcore/src/Miningcore/Blockchain/Bitcoin/Custom/AetherisBitcoinJob.cs
+@@
++namespace Miningcore.Blockchain.Bitcoin.Custom;
++
++/// <summary>
++/// Aetheris currently uses Bitcoin-style PoW templates with Scrypt headers,
++/// timestamped transactions, and a serialized block-signature vector.
++/// </summary>
++public sealed class AetherisBitcoinJob : BitcoinJob
++{
++    protected override bool IncludeCoinbaseTimestamp => true;
++
++    // A PoW block has an empty vchBlockSig vector; CompactSize(0) is one zero byte.
++    protected override bool IncludeBlockSignature => true;
++
++    // The active Aetheris protocol rules currently permit 15 seconds of future drift.
++    // The coinbase time is fixed in Stratum's job, so keep submitted header time
++    // within that consensus window of the template's coinbase timestamp.
++    protected override bool IsValidShareTime(uint nTime) =>
++        nTime >= BlockTemplate.CurTime &&
++        (ulong) nTime <= (ulong) BlockTemplate.CurTime + 15UL;
++}
+*** End Patch
