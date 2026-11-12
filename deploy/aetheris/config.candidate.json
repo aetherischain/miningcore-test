@@ -1,0 +1,76 @@
+{
+  "logging": {
+    "level": "info",
+    "enableConsoleLog": true,
+    "enableConsoleColors": false,
+    "logFile": "",
+    "apiLogFile": "",
+    "logBaseDirectory": "",
+    "perPoolLogFile": false
+  },
+  "banning": {
+    "manager": "Integrated",
+    "banOnJunkReceive": true,
+    "banOnInvalidShares": false
+  },
+  "notifications": {
+    "enabled": false
+  },
+  "persistence": {
+    "postgres": {
+      "host": "127.0.0.1",
+      "port": 5432,
+      "user": "REPLACE_LOCALLY",
+      "password": "REPLACE_LOCALLY",
+      "database": "miningcore"
+    }
+  },
+  "paymentProcessing": {
+    "enabled": false
+  },
+  "api": {
+    "enabled": true,
+    "listenAddress": "127.0.0.1",
+    "port": 4000
+  },
+  "coinTemplates": [
+    "/etc/miningcore-aetheris/coins.candidate.json"
+  ],
+  "pools": [
+    {
+      "id": "aetheris-test",
+      "enabled": true,
+      "coin": "aetheris",
+      "address": "AcK5HfAWFQJqHjiePGnExZ5DkUckmr6j2G",
+      "blockRefreshInterval": 500,
+      "jobRebroadcastTimeout": 10,
+      "clientConnectionTimeout": 600,
+      "banning": {
+        "enabled": false
+      },
+      "ports": {
+        "3333": {
+          "listenAddress": "127.0.0.1",
+          "difficulty": 1,
+          "varDiff": {
+            "minDiff": 1,
+            "targetTime": 15,
+            "retargetTime": 90,
+            "variancePercent": 30
+          }
+        }
+      },
+      "daemons": [
+        {
+          "host": "127.0.0.1",
+          "port": 25197,
+          "user": "REPLACE_LOCALLY",
+          "password": "REPLACE_LOCALLY"
+        }
+      ],
+      "paymentProcessing": {
+        "enabled": false
+      }
+    }
+  ]
+}

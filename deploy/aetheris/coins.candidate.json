@@ -1,0 +1,26 @@
+{
+  "aetheris": {
+    "name": "Aetheris",
+    "symbol": "AETH",
+    "family": "bitcoin",
+    "coinbaseHasher": {
+      "hash": "sha256d"
+    },
+    "headerHasher": {
+      "hash": "scrypt",
+      "args": [
+        1024,
+        1
+      ]
+    },
+    "blockHasher": {
+      "hash": "reverse",
+      "args": [
+        {
+          "hash": "sha256d"
+        }
+      ]
+    },
+    "shareMultiplier": 65536
+  }
+}
